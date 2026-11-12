@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>s3-gateway-mcp logo</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  html, body { background: transparent; }
+  /* 흰 테두리를 둘러 밝은·어두운 배경 모두에서 형태가 보이게 한다 */
+  #logo { width: 512px; height: 512px; background: var(--black); border: 20px solid var(--white);
+    display: grid; grid-template-rows: 1fr auto; padding: 56px 52px 44px; }
+  .arrow { width: 150px; height: 150px; }
+  .word { font: 900 150px/0.8 var(--display); font-stretch: 125%; letter-spacing: -.04em; color: var(--white); }
+</style>
+</head>
+<body>
+<div id="logo">
+  <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 20V4"/><path d="M5 11l7-7 7 7"/></svg>
+  <div class="word">S3</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>s3-gateway-mcp architecture</title>
+<link rel="stylesheet" href="base.css">
+<script src="lang.js"></script>
+<style>
+  #arch { width: 1600px; height: 860px; padding: 64px 80px; display: flex; flex-direction: column; }
+  h2 { position: relative; z-index: 1; font-size: 52px; line-height: 1; }
+  html[lang=ko] h2 { font-size: 50px; }
+  .lead { position: relative; z-index: 1; margin-top: 18px; font: 400 21px/1.5 var(--body); color: var(--gray-1); }
+
+  .flow { position: relative; z-index: 1; margin-top: auto; display: grid; grid-template-columns: 300px 72px 1fr 72px 330px; align-items: stretch; height: 560px; }
+
+  /* 칸 제목 */
+  .col { display: flex; flex-direction: column; }
+  .cap { font: 500 15px/1 var(--mono); color: var(--gray-1); margin-bottom: 14px; }
+
+  .agents { display: flex; flex-direction: column; flex: 1; }
+  .agent { flex: 1; border: var(--line); display: flex; flex-direction: column; justify-content: center; padding: 0 22px; }
+  .agent + .agent { border-top: 0; }
+  .agent .n { font: 700 21px/1.2 var(--body); }
+  .agent .s { font: 400 14px/1.2 var(--mono); color: var(--gray-1); margin-top: 6px; }
+
+  /* 연결선: 직각 화살표 */
+  .wire { position: relative; }
+  .wire::before { content: ''; position: absolute; left: 0; right: 10px; top: calc(50% + 14px); border-top: 2px solid var(--white); }
+  .wire::after { content: ''; position: absolute; right: 0; top: calc(50% + 14px - 7px); border-left: 12px solid var(--white); border-top: 8px solid transparent; border-bottom: 8px solid transparent; transform: translateY(-1px); }
+
+  .server { flex: 1; border: var(--line); display: flex; flex-direction: column; }
+  .server .head { background: var(--white); color: var(--black); padding: 18px 22px; display: flex; justify-content: space-between; align-items: baseline; }
+  .server .head b { font: 900 30px/1 var(--display); font-stretch: 125%; }
+  .server .head span { font: 500 15px/1 var(--mono); }
+  .groups { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+  .grp { padding: 18px 22px; border-bottom: var(--line); }
+  .grp:nth-child(odd) { border-right: var(--line); }
+  .grp .g { display: flex; justify-content: space-between; align-items: baseline; font: 700 19px/1.2 var(--body); }
+  .grp .g em { font: 900 34px/1 var(--display); font-stretch: 125%; font-style: normal; }
+  .grp .l { font: 400 14px/1.6 var(--mono); color: var(--gray-1); margin-top: 10px; }
+  .guard { display: flex; flex-wrap: wrap; }
+  .guard span { flex: 1 1 auto; text-align: center; font: 500 13px/1 var(--mono); padding: 14px 10px; }
+  .guard span + span { border-left: var(--line); }
+
+  .store { border: var(--line); padding: 22px; }
+  .store b { display: block; font: 900 64px/1 var(--display); font-stretch: 125%; }
+  .store span { font: 400 14px/1.4 var(--mono); color: var(--gray-1); }
+  .out { border: var(--line); border-top: 0; padding: 18px 22px; }
+  .out.inv { background: var(--white); color: var(--black); }
+  .out .k { font: 700 17px/1 var(--body); margin-bottom: 10px; }
+  .out code { font: 400 14px/1.45 var(--mono); word-break: break-all; }
+  .right { flex: 1; display: flex; flex-direction: column; }
+  .right .out:last-child { flex: 1; }
+</style>
+</head>
+<body>
+<section id="arch" class="stage">
+  <div class="grid-bg"></div>
+
+  <h2 class="display" data-en>One server. Every agent.</h2>
+  <h2 class="display" data-ko>서버 하나를 모든 에이전트가.</h2>
+  <p class="lead" data-en>Agents connect over Streamable HTTP with a bearer token. S3 credentials never leave the server.</p>
+  <p class="lead" data-ko>에이전트는 Bearer 토큰으로 Streamable HTTP에 접속합니다. S3 키는 서버 밖으로 나가지 않습니다.</p>
+
+  <div class="flow">
+    <div class="col">
+      <div class="cap" data-en>clients</div><div class="cap" data-ko>클라이언트</div>
+      <div class="agents">
+        <div class="agent"><div class="n">Claude Code</div><div class="s">type: http</div></div>
+        <div class="agent"><div class="n">Codex</div><div class="s">mcp_servers.s3</div></div>
+        <div class="agent"><div class="n">Cursor, VS Code</div><div class="s">mcp.json</div></div>
+        <div class="agent"><div class="n" data-en>Any MCP client</div><div class="n" data-ko>그 밖의 클라이언트</div><div class="s">--stdio</div></div>
+      </div>
+    </div>
+
+    <div class="wire"></div>
+
+    <div class="col">
+      <div class="cap">POST /mcp · Authorization: Bearer</div>
+      <div class="server">
+        <div class="head"><b>s3-gateway-mcp</b><span data-en>39 tools</span><span data-ko>도구 39개</span></div>
+        <div class="groups">
+          <div class="grp"><div class="g"><span data-en>Buckets</span><span data-ko>버킷</span><em>4</em></div><div class="l">list  head  create  delete</div></div>
+          <div class="grp"><div class="g"><span data-en>Bucket config</span><span data-ko>버킷 설정</span><em>17</em></div><div class="l">policy  versioning  cors<br>lifecycle  tagging  encryption</div></div>
+          <div class="grp"><div class="g"><span data-en>Objects</span><span data-ko>객체</span><em>12</em></div><div class="l">list  versions  head  get<br>put  copy  move  delete  tags</div></div>
+          <div class="grp"><div class="g"><span data-en>Links, uploads</span><span data-ko>링크, 업로드</span><em>6</em></div><div class="l">upload_file  upload_from_url<br>presign  public_url  multipart</div></div>
+        </div>
+        <div class="guard"><span>S3_READ_ONLY</span><span>S3_ALLOW_DESTRUCTIVE</span><span>S3_ALLOWED_BUCKETS</span><span>ALLOWED_DIRS</span></div>
+      </div>
+    </div>
+
+    <div class="wire"></div>
+
+    <div class="col">
+      <div class="cap" data-en>storage</div><div class="cap" data-ko>저장소</div>
+      <div class="right">
+        <div class="store"><b>S3</b><span>AWS  R2  MinIO  RustFS  B2</span></div>
+        <div class="out inv"><div class="k" data-en>Public URL</div><div class="k" data-ko>공개 URL</div><code>https://s3.example.com/static/uploads/20261112/a1b2c3-shot.png</code></div>
+        <div class="out"><div class="k" data-en>Presigned link</div><div class="k" data-ko>Presigned 링크</div><code>…/report.pdf?X-Amz-Expires=3600&amp;X-Amz-Signature=…</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

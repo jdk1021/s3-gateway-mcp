@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>s3-gateway-mcp hero</title>
+<link rel="stylesheet" href="base.css">
+<script src="lang.js"></script>
+<style>
+  #hero { width: 1600px; height: 720px; display: grid; grid-template-columns: 1fr 560px; border-bottom: 2px solid var(--white); }
+
+  .copy { position: relative; z-index: 1; padding: 64px 0 56px 80px; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand img { width: 52px; height: 52px; }
+  .brand span { font: 500 20px/1 var(--mono); }
+  h1 { margin-top: auto; font-size: 100px; line-height: .9; }
+  html[lang=ko] h1 { font-size: 104px; line-height: 1.05; font-weight: 900; }
+  .sub { margin-top: 36px; max-width: 740px; font: 400 23px/1.5 var(--body); color: var(--gray-1); }
+  .sub b { color: var(--white); font-weight: 700; }
+
+  /* 오른쪽: 흰 판 위에 요청 → 결과를 흑백 블록으로 */
+  .panel { position: relative; z-index: 1; background: var(--white); color: var(--black); padding: 64px 56px; display: flex; flex-direction: column; gap: 0; }
+  .step { border: 2px solid var(--black); padding: 22px 24px; }
+  .step + .step { border-top: 0; }
+  .step .k { font: 700 14px/1 var(--mono); color: var(--black); opacity: .55; margin-bottom: 12px; }
+  .step .v { font: 500 20px/1.35 var(--mono); word-break: break-all; }
+  .step.result { background: var(--black); color: var(--white); border-color: var(--black); }
+  .step.result .k { color: var(--white); }
+  .stats { margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--black); }
+  .stats div { padding: 18px 20px; }
+  .stats div + div { border-left: 2px solid var(--black); }
+  .stats b { display: block; font: 900 44px/1 var(--display); font-stretch: 125%; }
+  .stats span { font: 500 14px/1.3 var(--mono); }
+</style>
+</head>
+<body>
+<section id="hero" class="stage">
+  <div class="grid-bg"></div>
+
+  <div class="copy">
+    <div class="brand"><img src="../docs/images/logo.png" alt=""><span>s3-gateway-mcp</span></div>
+    <h1 class="display" data-en>Every S3 API.<br>One endpoint.</h1>
+    <h1 class="display" data-ko>S3 API 전부를<br>엔드포인트 하나로.</h1>
+    <p class="sub" data-en>An MCP server every agent on your machine shares. Buckets, objects, versions, policies and presigned links, plus <b>file to public URL</b> in one call.</p>
+    <p class="sub" data-ko>내 컴퓨터의 모든 에이전트가 함께 쓰는 MCP 서버입니다. 버킷, 객체, 버전, 정책, presigned 링크를 다루고, <b>파일 하나를 공개 URL로</b> 바로 바꿉니다.</p>
+  </div>
+
+  <div class="panel">
+    <div class="step"><div class="k">call</div><div class="v">upload_file<br>/tmp/shots/login.png</div></div>
+    <div class="step result"><div class="k">returns</div><div class="v">s3.example.com/static/<br>uploads/20261112/<br>9f3c1a-login.png</div></div>
+    <div class="stats">
+      <div><b>39</b><span data-en>tools</span><span data-ko>도구</span></div>
+      <div><b>2</b><span>HTTP<br>stdio</span></div>
+      <div><b>S3</b><span data-en>any<br>provider</span><span data-ko>호환<br>저장소</span></div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

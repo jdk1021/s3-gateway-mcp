@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+/* 무채색 고대비: 순수 흑백 + 회색 두 단계, 모서리 0 */
+:root {
+  --black: #000;
+  --white: #fff;
+  --gray-1: #8a8a8a;
+  --gray-2: #2b2b2b;
+  --line: 2px solid var(--white);
+  /* 한글 대체 글꼴은 부크크 고딕. 고정폭 글꼴에 한글이 없어 시스템 명조로 빠지는 것을 막는다 */
+  --display: 'Archivo', 'Pretendard', 'Bookk Gothic', sans-serif;
+  --body: 'Pretendard', 'Bookk Gothic', 'Archivo', sans-serif;
+  --mono: 'JetBrains Mono', 'Bookk Gothic', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+html, body { background: var(--black); color: var(--white); font-family: var(--body); -webkit-font-smoothing: antialiased; }
+
+.stage { position: relative; overflow: hidden; background: var(--black); }
+
+/* 기준 격자: 64px 점선 */
+.grid-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image: radial-gradient(var(--gray-2) 1.2px, transparent 1.2px); background-size: 32px 32px; }
+
+.display { font-family: var(--display); font-stretch: 125%; font-weight: 900; letter-spacing: -.02em; }
+html[lang=ko] .display { font-family: 'Pretendard', 'Bookk Gothic', sans-serif; font-stretch: normal; letter-spacing: -.05em; }
+.mono { font-family: var(--mono); }
+
+.box { border: var(--line); background: var(--black); }
+.box.inv { background: var(--white); color: var(--black); border-color: var(--white); }
+
+[data-ko] { display: none; }
+html[lang=ko] [data-en] { display: none; }
+html[lang=ko] [data-ko] { display: revert; }

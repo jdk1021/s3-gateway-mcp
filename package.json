@@ -1,0 +1,24 @@
+{
+  "name": "s3-gateway-mcp",
+  "version": "0.1.0",
+  "description": "S3-compatible storage MCP server (Streamable HTTP + stdio)",
+  "main": "src/index.mjs",
+  "scripts": {
+    "start": "node src/index.mjs"
+  },
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1167.0",
+    "@aws-sdk/lib-storage": "^3.1167.0",
+    "@aws-sdk/s3-request-presigner": "^3.1167.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "bin": {
+    "s3-gateway-mcp": "src/index.mjs"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}
