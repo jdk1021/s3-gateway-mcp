@@ -29,12 +29,24 @@ export function createContext(cfg) {
     return name;
   };
 
+  // S3_PUBLIC_URL이 없으면 엔드포인트로 객체 주소를 만든다(경로 방식: endpoint/bucket/key, 가상 호스트 방식: bucket.host/key).
+  // 버킷이 익명 읽기를 허용해야 열린다. 비공개 버킷은 presign_url을 쓴다.
+  const endpointUrl = (b) => {
+    if (cfg.endpoint) {
+      const u = new URL(cfg.endpoint);
+      if (cfg.forcePathStyle) return `${u.origin}${u.pathname.replace(/\/+$/, '')}/${b}`;
+      return `${u.protocol}//${b}.${u.host}`;
+    }
+    return `https://${b}.s3.${cfg.region}.amazonaws.com`;
+  };
   const publicUrl = (b, key) => {
-    if (!cfg.publicUrl) return undefined;
     const enc = key.split('/').map(encodeURIComponent).join('/');
-    // S3_PUBLIC_URL은 기본 버킷의 공개 주소. 다른 버킷이면 {bucket} 치환을 지원한다.
-    if (cfg.publicUrl.includes('{bucket}')) return `${cfg.publicUrl.replace('{bucket}', b)}/${enc}`;
-    return b === cfg.defaultBucket ? `${cfg.publicUrl}/${enc}` : undefined;
+    if (cfg.publicUrl) {
+      // S3_PUBLIC_URL은 기본 버킷의 공개 주소(CDN 등). {bucket}을 넣으면 모든 버킷에 적용된다.
+      if (cfg.publicUrl.includes('{bucket}')) return `${cfg.publicUrl.replace('{bucket}', b)}/${enc}`;
+      if (b === cfg.defaultBucket) return `${cfg.publicUrl}/${enc}`;
+    }
+    return `${endpointUrl(b)}/${enc}`;
   };
 
   const checkLocalPath = async (p, { mustExist = true } = {}) => {

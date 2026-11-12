@@ -30,23 +30,22 @@ docker build -t s3-gateway-mcp ./s3-gateway-mcp
 docker run -d --name s3-gateway-mcp --restart unless-stopped \
   --user "$(id -u):$(id -g)" \
   -p 127.0.0.1:18801:8000 \
-  -v "$HOME:$HOME:ro" -v /tmp:/tmp:ro \
+  -v /tmp:/tmp:ro \
   -e MCP_TOKEN="$(openssl rand -hex 32)" \
   -e S3_ENDPOINT=https://s3.example.com \
-  -e S3_REGION=us-east-1 \
   -e S3_ACCESS_KEY_ID=your_key \
   -e S3_SECRET_ACCESS_KEY=your_secret \
   -e S3_BUCKET=static \
-  -e S3_PUBLIC_URL=https://s3.example.com/static \
-  -e S3_PATH_PREFIX=uploads/ \
-  -e ALLOWED_DIRS="$HOME:/tmp" \
+  -e ALLOWED_DIRS=/tmp \
   s3-gateway-mcp
 
 curl -s localhost:18801/health
 docker exec s3-gateway-mcp printenv MCP_TOKEN    # 에이전트 등록에 쓸 토큰
 ```
 
-`-v` 옵션은 홈 디렉터리와 `/tmp`를 **같은 경로에 읽기 전용으로** 마운트합니다. 그래서 에이전트가 호스트에서 보는 경로를 `upload_file`에 그대로 넘기면 됩니다. `ALLOWED_DIRS`는 이 마운트 경로와 맞춰 두세요. 전체 변수는 [설정](#설정)에 있습니다.
+공개 URL은 `S3_ENDPOINT`로 만듭니다(`https://s3.example.com/static/<키>`). CDN처럼 다른 주소로 파일을 내보낼 때만 `S3_PUBLIC_URL`을 넣으세요. 선택 항목은 [설정](#설정)에 있습니다.
+
+`/tmp`는 **같은 경로에 읽기 전용으로** 마운트합니다. 그래서 에이전트가 호스트에서 보는 경로를 `upload_file`에 그대로 넘기면 됩니다. 다른 디렉터리를 더 허용하려면 `-v <디렉터리>:<디렉터리>:ro`를 추가하고 `ALLOWED_DIRS`에도 덧붙이세요. 그 전에 [로컬 파일 접근](#로컬-파일-접근)을 꼭 읽어 주세요.
 
 ### Docker Compose
 
@@ -103,7 +102,7 @@ http_headers = { Authorization = "Bearer <MCP_TOKEN>" }
 ```bash
 claude mcp add -s user s3 \
   -e S3_ENDPOINT=https://s3.example.com -e S3_ACCESS_KEY_ID=... -e S3_SECRET_ACCESS_KEY=... \
-  -e S3_BUCKET=static -e S3_PUBLIC_URL=https://s3.example.com/static \
+  -e S3_BUCKET=static -e ALLOWED_DIRS=/tmp \
   -- node /path/to/s3-gateway-mcp/src/index.mjs --stdio
 ```
 
@@ -122,12 +121,12 @@ claude mcp add -s user s3 \
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | 없음 | 접속 키(필수) |
 | `S3_SESSION_TOKEN` | 없음 | 임시 자격증명 |
 | `S3_BUCKET` | 없음 | 도구 호출에 `bucket`이 없을 때 쓰는 기본 버킷 |
-| `S3_PUBLIC_URL` | 없음 | 기본 버킷의 공개 주소. `{bucket}`을 넣으면(예: `https://cdn.example.com/{bucket}`) 모든 버킷에 적용됩니다. |
-| `S3_PATH_PREFIX` | 빈 값 | 자동 생성 업로드 키 앞에 붙는 경로(예: `uploads/`) |
+| `S3_PUBLIC_URL` | `S3_ENDPOINT`로 생성 | CDN이나 별도 도메인으로 파일을 내보낼 때만 넣습니다. 기본 버킷의 공개 주소이며, `{bucket}`을 넣으면(예: `https://cdn.example.com/{bucket}`) 모든 버킷에 적용됩니다. |
+| `S3_PATH_PREFIX` | 빈 값 | 선택. 자동 생성 업로드 키 앞에 붙는 경로(예: `uploads/`) |
 | `S3_ALLOWED_BUCKETS` | 전체 | 허용할 버킷 목록(쉼표 구분) |
 | `S3_READ_ONLY` | `false` | 읽기 도구만 등록합니다. PUT presign도 거부합니다. |
 | `S3_ALLOW_DESTRUCTIVE` | `true` | `false`면 삭제·중단·이동 도구를 숨깁니다. |
-| `ALLOWED_DIRS` | 현재 디렉터리 | `upload_file`이 읽을 수 있는 디렉터리(콜론 구분) |
+| `ALLOWED_DIRS` | 현재 디렉터리 | `upload_file`이 읽을 수 있는 디렉터리(콜론 구분). [로컬 파일 접근](#로컬-파일-접근) 참고 |
 | `DOWNLOAD_DIR` | 없음 | 설정하면 `get_object`의 `save_to`를 이 디렉터리 안에서만 허용합니다. |
 | `MAX_UPLOAD_MB` | `100` | 업로드 크기 제한 |
 | `MAX_INLINE_KB` | `1024` | `get_object`가 본문을 바로 돌려주는 최대 크기 |
@@ -155,6 +154,16 @@ claude mcp add -s user s3 \
 | 멀티파트 | `list_multipart_uploads` `abort_multipart_upload` |
 
 5MB를 넘는 업로드는 자동으로 멀티파트로 올라갑니다.
+
+## 로컬 파일 접근
+
+> [!WARNING]
+> `upload_file`은 `ALLOWED_DIRS` 안에서 읽을 수 있는 **모든 파일**을 버킷에 올릴 수 있습니다. 읽기 전용 마운트는 서버가 파일을 바꾸지 못하게 할 뿐, 올리는 것까지 막지는 않습니다. 홈 디렉터리 전체를 허용하면 `~/.ssh/id_ed25519`, `~/.aws/credentials`, `.env` 같은 파일도 도구 호출 한 번이면 공개 URL이 됩니다.
+
+- 에이전트가 올릴 파일이 있는 디렉터리만 좁게 허용하세요. 예를 들면 `/tmp`나 스크린샷 폴더입니다. `$HOME` 전체는 피하세요.
+- 마운트는 항상 읽기 전용(`:ro`)으로, 컨테이너 안에서도 같은 경로로 거세요.
+- 심볼릭 링크는 실제 경로로 풀어서 확인하므로, 허용한 디렉터리 안의 링크로 바깥 파일을 가리켜도 거부됩니다.
+- 에이전트가 이미 가진 데이터만 올린다면 마운트를 아예 빼고 `upload_base64`나 `upload_from_url`을 쓰세요.
 
 ## 보안 참고
 

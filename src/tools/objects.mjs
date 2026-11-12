@@ -137,14 +137,12 @@ export function registerObjectTools({ tool }, ctx) {
     return { bucket: b, key: a.key, method: a.method, url, expires_at: new Date(Date.now() + a.expires_in * 1000).toISOString() };
   });
 
-  tool('get_public_url', 'read', 'Return the public URL for a key (requires S3_PUBLIC_URL). Does not check existence.', {
-    bucket: bucketArg, key: keyArg,
-  }, async (a) => {
-    const b = bucket(a.bucket);
-    const url = publicUrl(b, a.key);
-    if (!url) throw new Error('no public URL configured for this bucket (set S3_PUBLIC_URL, optionally with {bucket})');
-    return { bucket: b, key: a.key, url };
-  });
+  tool('get_public_url', 'read',
+    'Return the direct URL for a key (S3_PUBLIC_URL if set, otherwise built from the endpoint). Opens only if the bucket allows anonymous reads; use presign_url for private buckets. Does not check existence.',
+    { bucket: bucketArg, key: keyArg }, async (a) => {
+      const b = bucket(a.bucket);
+      return { bucket: b, key: a.key, url: publicUrl(b, a.key) };
+    });
 
   // --- write
   const putCommon = {

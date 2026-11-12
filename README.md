@@ -30,23 +30,22 @@ docker build -t s3-gateway-mcp ./s3-gateway-mcp
 docker run -d --name s3-gateway-mcp --restart unless-stopped \
   --user "$(id -u):$(id -g)" \
   -p 127.0.0.1:18801:8000 \
-  -v "$HOME:$HOME:ro" -v /tmp:/tmp:ro \
+  -v /tmp:/tmp:ro \
   -e MCP_TOKEN="$(openssl rand -hex 32)" \
   -e S3_ENDPOINT=https://s3.example.com \
-  -e S3_REGION=us-east-1 \
   -e S3_ACCESS_KEY_ID=your_key \
   -e S3_SECRET_ACCESS_KEY=your_secret \
   -e S3_BUCKET=static \
-  -e S3_PUBLIC_URL=https://s3.example.com/static \
-  -e S3_PATH_PREFIX=uploads/ \
-  -e ALLOWED_DIRS="$HOME:/tmp" \
+  -e ALLOWED_DIRS=/tmp \
   s3-gateway-mcp
 
 curl -s localhost:18801/health
 docker exec s3-gateway-mcp printenv MCP_TOKEN    # token for your agents
 ```
 
-The `-v` mounts expose your home directory and `/tmp` **read-only at the same paths**, so a path an agent sees on the host is the path `upload_file` reads. Keep `ALLOWED_DIRS` in sync with those mounts. Every variable is listed under [Configuration](#configuration).
+Public URLs are built from `S3_ENDPOINT` (`https://s3.example.com/static/<key>`). Set `S3_PUBLIC_URL` only when files are served from a different address such as a CDN. Optional variables are listed under [Configuration](#configuration).
+
+`/tmp` is mounted **read-only at the same path**, so a path an agent sees on the host is the path `upload_file` reads. To allow more, add another `-v <dir>:<dir>:ro` and append it to `ALLOWED_DIRS`. Read [Local file access](#local-file-access) before you do.
 
 ### Docker Compose
 
@@ -103,7 +102,7 @@ http_headers = { Authorization = "Bearer <MCP_TOKEN>" }
 ```bash
 claude mcp add -s user s3 \
   -e S3_ENDPOINT=https://s3.example.com -e S3_ACCESS_KEY_ID=... -e S3_SECRET_ACCESS_KEY=... \
-  -e S3_BUCKET=static -e S3_PUBLIC_URL=https://s3.example.com/static \
+  -e S3_BUCKET=static -e ALLOWED_DIRS=/tmp \
   -- node /path/to/s3-gateway-mcp/src/index.mjs --stdio
 ```
 
@@ -122,12 +121,12 @@ claude mcp add -s user s3 \
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | — | Credentials. Required. |
 | `S3_SESSION_TOKEN` | — | Temporary credentials. |
 | `S3_BUCKET` | — | Default bucket when a tool call omits `bucket`. |
-| `S3_PUBLIC_URL` | — | Public base URL of the default bucket. Use `{bucket}` (e.g. `https://cdn.example.com/{bucket}`) to cover all buckets. |
-| `S3_PATH_PREFIX` | empty | Prefix for auto-generated upload keys, e.g. `uploads/`. |
+| `S3_PUBLIC_URL` | built from `S3_ENDPOINT` | Only when files are served from another address (CDN, custom domain). Base URL of the default bucket; use `{bucket}` (e.g. `https://cdn.example.com/{bucket}`) to cover all buckets. |
+| `S3_PATH_PREFIX` | empty | Optional prefix for auto-generated upload keys, e.g. `uploads/`. |
 | `S3_ALLOWED_BUCKETS` | all | Comma-separated allowlist. |
 | `S3_READ_ONLY` | `false` | Register read tools only. PUT presigning is also refused. |
 | `S3_ALLOW_DESTRUCTIVE` | `true` | `false` hides every delete/abort/move tool. |
-| `ALLOWED_DIRS` | cwd | Colon-separated directories `upload_file` may read. |
+| `ALLOWED_DIRS` | cwd | Colon-separated directories `upload_file` may read. See [Local file access](#local-file-access). |
 | `DOWNLOAD_DIR` | — | Enables `get_object` `save_to`, restricted to this directory. |
 | `MAX_UPLOAD_MB` | `100` | Upload size limit. |
 | `MAX_INLINE_KB` | `1024` | Largest object `get_object` returns inline. |
@@ -155,6 +154,16 @@ Every tool takes an optional `bucket` that falls back to `S3_BUCKET`. Tools carr
 | Multipart | `list_multipart_uploads` `abort_multipart_upload` |
 
 Uploads over 5 MB switch to multipart automatically.
+
+## Local file access
+
+> [!WARNING]
+> `upload_file` can publish **any readable file** inside `ALLOWED_DIRS` to your bucket. Read-only mounts stop the server from changing files, not from uploading them. If you allow your whole home directory, files such as `~/.ssh/id_ed25519`, `~/.aws/credentials` or `.env` files become one tool call away from a public URL.
+
+- Allow the narrowest directories that hold what agents upload, for example `/tmp` or a screenshots folder. Avoid `$HOME`.
+- Always mount them read-only (`:ro`) and at the same path inside the container.
+- Symlinks are resolved first, so a link inside an allowed directory cannot point outside it.
+- If agents only need to pass bytes they already have, drop the mounts entirely and use `upload_base64` or `upload_from_url`.
 
 ## Security notes
 
