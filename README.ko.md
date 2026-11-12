@@ -21,14 +21,40 @@ S3 호환 저장소를 다루는 MCP 서버입니다. **Streamable HTTP** 서비
 
 ### Docker (권장)
 
+이미지를 빌드한 뒤, 설정을 환경변수로 넣어 실행합니다.
+
 ```bash
-git clone https://github.com/jdk1021/s3-gateway-mcp.git && cd s3-gateway-mcp
-cp env.example .env          # S3_* 값과 MCP_TOKEN(openssl rand -hex 32)을 채운다
-docker compose up -d --build
+git clone https://github.com/jdk1021/s3-gateway-mcp.git
+docker build -t s3-gateway-mcp ./s3-gateway-mcp
+
+docker run -d --name s3-gateway-mcp --restart unless-stopped \
+  --user "$(id -u):$(id -g)" \
+  -p 127.0.0.1:18801:8000 \
+  -v "$HOME:$HOME:ro" -v /tmp:/tmp:ro \
+  -e MCP_TOKEN="$(openssl rand -hex 32)" \
+  -e S3_ENDPOINT=https://s3.example.com \
+  -e S3_REGION=us-east-1 \
+  -e S3_ACCESS_KEY_ID=your_key \
+  -e S3_SECRET_ACCESS_KEY=your_secret \
+  -e S3_BUCKET=static \
+  -e S3_PUBLIC_URL=https://s3.example.com/static \
+  -e S3_PATH_PREFIX=uploads/ \
+  -e ALLOWED_DIRS="$HOME:/tmp" \
+  s3-gateway-mcp
+
 curl -s localhost:18801/health
+docker exec s3-gateway-mcp printenv MCP_TOKEN    # 에이전트 등록에 쓸 토큰
 ```
 
-`compose.yml`은 홈 디렉터리와 `/tmp`를 **같은 경로에 읽기 전용으로** 마운트합니다. 그래서 에이전트가 호스트에서 보는 경로를 `upload_file`에 그대로 넘기면 됩니다. `ALLOWED_DIRS`는 이 마운트 경로와 맞춰 두세요.
+`-v` 옵션은 홈 디렉터리와 `/tmp`를 **같은 경로에 읽기 전용으로** 마운트합니다. 그래서 에이전트가 호스트에서 보는 경로를 `upload_file`에 그대로 넘기면 됩니다. `ALLOWED_DIRS`는 이 마운트 경로와 맞춰 두세요. 전체 변수는 [설정](#설정)에 있습니다.
+
+### Docker Compose
+
+```bash
+git clone https://github.com/jdk1021/s3-gateway-mcp.git && cd s3-gateway-mcp
+cp env.example .env          # S3_* 값과 MCP_TOKEN을 채운다
+docker compose up -d --build
+```
 
 ### Node로 직접 실행
 

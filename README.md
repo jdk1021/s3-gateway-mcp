@@ -21,14 +21,40 @@ An MCP server for S3-compatible storage. It runs once as a **Streamable HTTP** s
 
 ### Docker (recommended)
 
+Build the image, then run it with your settings as environment variables.
+
 ```bash
-git clone https://github.com/jdk1021/s3-gateway-mcp.git && cd s3-gateway-mcp
-cp env.example .env          # fill in S3_* and MCP_TOKEN (openssl rand -hex 32)
-docker compose up -d --build
+git clone https://github.com/jdk1021/s3-gateway-mcp.git
+docker build -t s3-gateway-mcp ./s3-gateway-mcp
+
+docker run -d --name s3-gateway-mcp --restart unless-stopped \
+  --user "$(id -u):$(id -g)" \
+  -p 127.0.0.1:18801:8000 \
+  -v "$HOME:$HOME:ro" -v /tmp:/tmp:ro \
+  -e MCP_TOKEN="$(openssl rand -hex 32)" \
+  -e S3_ENDPOINT=https://s3.example.com \
+  -e S3_REGION=us-east-1 \
+  -e S3_ACCESS_KEY_ID=your_key \
+  -e S3_SECRET_ACCESS_KEY=your_secret \
+  -e S3_BUCKET=static \
+  -e S3_PUBLIC_URL=https://s3.example.com/static \
+  -e S3_PATH_PREFIX=uploads/ \
+  -e ALLOWED_DIRS="$HOME:/tmp" \
+  s3-gateway-mcp
+
 curl -s localhost:18801/health
+docker exec s3-gateway-mcp printenv MCP_TOKEN    # token for your agents
 ```
 
-`compose.yml` mounts your home directory and `/tmp` **read-only at the same paths**, so a path an agent sees on the host is the path `upload_file` reads. Keep `ALLOWED_DIRS` in sync with those mounts.
+The `-v` mounts expose your home directory and `/tmp` **read-only at the same paths**, so a path an agent sees on the host is the path `upload_file` reads. Keep `ALLOWED_DIRS` in sync with those mounts. Every variable is listed under [Configuration](#configuration).
+
+### Docker Compose
+
+```bash
+git clone https://github.com/jdk1021/s3-gateway-mcp.git && cd s3-gateway-mcp
+cp env.example .env          # fill in S3_* and MCP_TOKEN
+docker compose up -d --build
+```
 
 ### Node
 
